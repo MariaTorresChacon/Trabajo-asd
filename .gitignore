@@ -4,3 +4,12 @@ Debug/
 Release/ 
 *.exe 
 *.obj 
+bin/
+obj/
+*.pdb
+*.ilk
+*.user
+*.suo
+*.ipch
+*.tlog
+*.log

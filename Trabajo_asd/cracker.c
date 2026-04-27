@@ -35,16 +35,20 @@ int crackear(int hilos){
 	int encontrado=0; //false
 	char resultado[LONGITUD_CONTRASENA + 1]; //almacena resultado (contraseña encontrada)
 
+	omp_set_num_threads(hilos);
+	omp_get_num_threads(hilos);
+
 	double tiempo_inicio = omp_get_wtime();	//mide el tiempo desde el inicio
 
-	
-	for (long long i=0; i<total_combinaciones; i++){
+	long long i;
+	#pragma omp parallel for  
+	for (i =0; i<total_combinaciones; i++){
 		char cadena[LONGITUD_CONTRASENA + 1]; //almacena la posible combinacion
 		indice_a_cadena(i, LONGITUD_CONTRASENA, cadena); //genera una posible combinacion
 		
 		if (strcmp(cadena, CONTRASENA)==0) { //comparar que cadena es igual a la contraseña
 		//anotacion: usar strcmp por que == solo comparan direcciones de memoria, no el contenido
-			
+			#pragma omp critical
 			if (encontrado==0) {
 				encontrado = 1;
 				strcpy(resultado, cadena); //copiamos la combinacion en el array resultado
@@ -71,7 +75,11 @@ int main(){
 			CONTRASENA, LONGITUD_CONTRASENA, NUM_CAR);
 	
 	crackear(1);
-	
+	crackear(2);
+	crackear(4);
+	crackear(8);
+	crackear(12);
+
 	return 0;
 
 }

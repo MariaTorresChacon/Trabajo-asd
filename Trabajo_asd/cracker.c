@@ -72,6 +72,7 @@ int crackear(int hilos){
 
 int main(){
 	int max_hilos= omp_get_max_threads();
+	printf("MAXIMO DE HILOS POSIBLE: %d\n", max_hilos);
 	printf("BUSCANDO CONTRASENA: '%s' CON LONGITUD: %d, CARACTERES POSIBLES: %d)\n\n",
 			CONTRASENA, LONGITUD_CONTRASENA, NUM_CAR);
 	

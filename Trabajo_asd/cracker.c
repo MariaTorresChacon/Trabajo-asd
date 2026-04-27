@@ -25,7 +25,7 @@ void indice_a_cadena(long long indice, int longitud, char *resultado){
 //funcion para crackear la contraseña usando numero de hilos deseado
 
 int crackear(int hilos){
-	
+
 	// NUM_CAR elevado a LONGITUD_CONTRASENA
 	
 	long long total_combinaciones = (long long)pow(NUM_CAR, LONGITUD_CONTRASENA);
@@ -36,7 +36,7 @@ int crackear(int hilos){
 	char resultado[LONGITUD_CONTRASENA + 1]; //almacena resultado (contraseña encontrada)
 
 	omp_set_num_threads(hilos);
-	omp_get_num_threads(hilos);
+	
 
 	double tiempo_inicio = omp_get_wtime();	//mide el tiempo desde el inicio
 
@@ -71,15 +71,16 @@ int crackear(int hilos){
 
 
 int main(){
+	int max_hilos= omp_get_max_threads();
 	printf("BUSCANDO CONTRASENA: '%s' CON LONGITUD: %d, CARACTERES POSIBLES: %d)\n\n",
 			CONTRASENA, LONGITUD_CONTRASENA, NUM_CAR);
 	
 	crackear(1);
-	crackear(2);
-	crackear(4);
-	crackear(8);
-	crackear(12);
+	crackear(max_hilos / 4);
+	crackear(max_hilos / 2);
+	crackear(max_hilos);
 
+	
 	return 0;
 
 }

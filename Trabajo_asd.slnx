@@ -1,0 +1,11 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="para_probar_las_practicas/para_probar_las_practicas.vcxproj" Id="4e11e72e-ad4b-4cae-8f4c-1e854cfd508e" />
+  <Project Path="Trabajo_asd/Trabajo_asd.vcxproj" Id="c5c87059-171e-4246-b358-94569fe651a6" />
+  <Project Path="Trabajo_asd_MPI/Trabajo_asd_MPI.vcxproj" Id="7091645d-bff5-4e93-bbcc-b1bb298048c8" />
+  <Project Path="Trabajo_asd_openMP/Trabajo_asd_openMP.vcxproj" Id="42b129da-7e60-47d3-82ed-c4a85263d99c" />
+  <Project Path="Trabajo_asd_openMP_MPI/Trabajo_asd_openMP_MPI.vcxproj" Id="660ebe35-0822-47c1-a1e0-2dc60f46a77f" />
+</Solution>

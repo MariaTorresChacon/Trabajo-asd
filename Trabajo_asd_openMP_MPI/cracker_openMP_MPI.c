@@ -1,0 +1,145 @@
+
+#define _CRT_SECURE_NO_WARNINGS
+
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <math.h>
+#include <omp.h>
+#include "mpi.h"
+
+#define CONTRASENA "asd123"
+#define LONGITUD_CONTRASENA 6
+#define CARACTERES "abcdefghijklmnopqrstuvwxyz0123456789"
+#define NUM_CAR 36
+
+//------------------------------------------------------------------------------------------------------------------
+
+
+//funcion que sirve para convertir un indice numerico a una cadena, 
+// para poder probar todas las posibles combinaciones de cierta longitud indicando un numero (indice del bucle for)
+void indice_a_cadena(long long indice, int longitud, char* resultado) {
+	for (int i = longitud - 1; i >= 0; i--) {
+		resultado[i] = CARACTERES[indice % NUM_CAR];
+		indice = indice / NUM_CAR;
+	} resultado[longitud] = '\0'; //marca el final del array
+}
+
+
+//------------------------------------------------------------------------------------------------------------------
+
+
+
+//idea: cuando un proceso encuentra la contraseña (encontrado=1) todos los demas deben recivirlo a trabes de mensajes 
+
+
+//MAIN
+
+
+int main(int argc, char* argv[]) {
+
+	MPI_Init(&argc, &argv);
+
+	int size, rank;
+	MPI_Comm_size(MPI_COMM_WORLD, &size);
+	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+	int max_hilos = omp_get_max_threads();
+
+
+	if (rank == 0) {
+		printf("USANDO MAXIMO DE HILOS POSIBLE: %d\n", max_hilos);
+		printf("PROCESOS MPI: %d\n", size);
+		printf("BUSCANDO CONTRASENA: '%s' CON LONGITUD: %d, CARACTERES POSIBLES: %d)\n",
+			CONTRASENA, LONGITUD_CONTRASENA, NUM_CAR);
+	}
+
+
+
+	long long total_combinaciones = (long long)pow(NUM_CAR, LONGITUD_CONTRASENA);
+
+	if (rank == 0) printf("POSIBLES COMBINACIONES: %lld\n\n", total_combinaciones);
+
+	int encontrado = 0;
+	char resultado[LONGITUD_CONTRASENA + 1];
+
+	int encontrado_global = 0;
+
+	//para mandar la contraseña al proceso 0, el cual la imprime
+	char resultado_global[LONGITUD_CONTRASENA + 1];
+	resultado_global[0] = '\0';
+
+
+	//dividir que proceso hace cada parte del bucle 
+
+	long long inicio = (total_combinaciones / size) * rank;
+	long long final;
+	if (rank == size - 1) {//caso del ultimo proceso
+		final = total_combinaciones;
+	}
+	else {
+		final = inicio + (total_combinaciones / size);
+	}
+
+
+	omp_set_num_threads(max_hilos);
+	long long i;
+
+	#pragma omp parallel for 
+	for (i = inicio; i < final; i++) {
+		char cadena[LONGITUD_CONTRASENA + 1];
+		indice_a_cadena(i, LONGITUD_CONTRASENA, cadena);
+
+		if (strcmp(cadena, CONTRASENA) == 0) {
+		#pragma omp critical
+			if (encontrado == 0) {
+				encontrado = 1;
+				strcpy(resultado, cadena);
+
+			}
+		}
+	}
+
+	//si alguno encuentra la contraseña, encontrado=1, debe avisar a los demas
+	MPI_Allreduce(&encontrado, &encontrado_global, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
+
+	//si algun proceso la encontro (y se lo ha comunicado a los demas procesos)
+	if (encontrado_global) {
+		// el proceso que lo encontro (que no sea el 0) se lo envia al 0
+		if (encontrado && rank != 0) {
+			MPI_Send(resultado, LONGITUD_CONTRASENA + 1, MPI_CHAR, 0, 0, MPI_COMM_WORLD);
+		}
+		// El proceso 0 recive la contraseña encontrada
+		if (rank == 0) {
+			if (encontrado) {
+				strcpy(resultado_global, resultado);  // caso en el que el proceso 0 es el que la encuentra
+			}
+			else {
+				MPI_Status status;
+				MPI_Recv(resultado_global, LONGITUD_CONTRASENA + 1, MPI_CHAR,
+					MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, &status);
+			}
+			printf("CONTRASENA ENCONTRADA: '%s'\n", resultado_global);
+		}
+	}
+	else {
+		if (rank == 0) {
+			printf("NO SE ENCONTRO\n");
+		}
+	}
+
+
+
+	MPI_Finalize();
+
+
+	return 0;
+
+
+	//primero compilar proyecto y luego ejecutar mpiexec -n 4 x64\Release\Trabajo_asd_MPI.exe siendo -n el numero de procesos (en windows)
+
+
+
+}
+
+

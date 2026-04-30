@@ -5,12 +5,15 @@
 #include <string.h>
 #include <stdlib.h>
 #include <math.h>
-#include <omp.h>
 
 #define CONTRASENA "asd123"
 #define LONGITUD_CONTRASENA 6
 #define CARACTERES "abcdefghijklmnopqrstuvwxyz0123456789"
 #define NUM_CAR 36
+
+
+//------------------------------------------------------------------------------------------------------------------
+
 
 //funcion que sirve para convertir un indice numerico a una cadena, 
 // para poder probar todas las posibles combinaciones de cierta longitud indicando un numero (indice del bucle for)
@@ -22,66 +25,54 @@ void indice_a_cadena(long long indice, int longitud, char *resultado){
 }
 
 
-//funcion para crackear la contraseña usando numero de hilos deseado
 
-int crackear(int hilos){
+//------------------------------------------------------------------------------------------------------------------
 
-	// NUM_CAR elevado a LONGITUD_CONTRASENA
-	
-	long long total_combinaciones = (long long)pow(NUM_CAR, LONGITUD_CONTRASENA);
+//MAIN
 
-	printf("POSIBLES COMBINACIONES: %lld\n", total_combinaciones);
 
-	int encontrado=0; //false
-	char resultado[LONGITUD_CONTRASENA + 1]; //almacena resultado (contraseña encontrada)
+int main() {
 
-	omp_set_num_threads(hilos);
+		printf("BUSCANDO CONTRASENA: '%s' CON LONGITUD: %d, CARACTERES POSIBLES: %d)\n\n",
+				CONTRASENA, LONGITUD_CONTRASENA, NUM_CAR);
 	
 
-	double tiempo_inicio = omp_get_wtime();	//mide el tiempo desde el inicio
 
-	long long i;
-	#pragma omp parallel for  
-	for (i =0; i<total_combinaciones; i++){
-		char cadena[LONGITUD_CONTRASENA + 1]; //almacena la posible combinacion
-		indice_a_cadena(i, LONGITUD_CONTRASENA, cadena); //genera una posible combinacion
-		
-		if (strcmp(cadena, CONTRASENA)==0) { //comparar que cadena es igual a la contraseña
-		//anotacion: usar strcmp por que == solo comparan direcciones de memoria, no el contenido
-			#pragma omp critical
-			if (encontrado==0) {
-				encontrado = 1;
-				strcpy(resultado, cadena); //copiamos la combinacion en el array resultado
+		// NUM_CAR elevado a LONGITUD_CONTRASENA
+
+		long long total_combinaciones = (long long)pow(NUM_CAR, LONGITUD_CONTRASENA);
+
+		printf("POSIBLES COMBINACIONES: %lld\n", total_combinaciones);
+
+		int encontrado = 0; //false
+		char resultado[LONGITUD_CONTRASENA + 1]; //almacena resultado (contraseña encontrada)
+
+
+		long long i;
+
+		for (i = 0; i < total_combinaciones; i++) {
+			char cadena[LONGITUD_CONTRASENA + 1]; //almacena la posible combinacion
+			indice_a_cadena(i, LONGITUD_CONTRASENA, cadena); //genera una posible combinacion
+
+			if (strcmp(cadena, CONTRASENA) == 0) { //comparar que cadena es igual a la contraseña
+				//anotacion: usar strcmp por que == solo comparan direcciones de memoria, no el contenido
+
+				if (encontrado == 0) {
+					encontrado = 1;
+					strcpy(resultado, cadena); //copiamos la combinacion en el array resultado
+				}
 			}
 		}
-	}
-		
-	double tiempo_fin = omp_get_wtime();
 
-	if (encontrado){
-		printf("USANDO %2d HILOS, CONTRASENA ENCONTRADA: '%s', TIEMPO DE EJECUCION: %.4f s\n",
-			hilos, resultado, tiempo_fin - tiempo_inicio);
-	}else {
-		printf("USANDO %2d HILOS, NO SE ENCONTRÓ, TIEMPO DE EJECUCION: %.4f s\n",
-			hilos, tiempo_fin - tiempo_inicio);
-	}
-
-	return encontrado;
-	}
-
-
-int main(){
-	int max_hilos= omp_get_max_threads();
-	printf("MAXIMO DE HILOS POSIBLE: %d\n", max_hilos);
-	printf("BUSCANDO CONTRASENA: '%s' CON LONGITUD: %d, CARACTERES POSIBLES: %d)\n\n",
-			CONTRASENA, LONGITUD_CONTRASENA, NUM_CAR);
-	
-	crackear(1);
-	crackear(max_hilos / 4);
-	crackear(max_hilos / 2);
-	crackear(max_hilos);
+		if (encontrado) {
+			printf("CONTRASENA ENCONTRADA: '%s', TIEMPO DE EJECUCION: s\n",
+				resultado);
+		}
+		else {
+			printf("NO SE ENCONTRÓ, TIEMPO DE EJECUCION: s\n");
+		}
 
 	
-	return 0;
+		return 0;
 
 }

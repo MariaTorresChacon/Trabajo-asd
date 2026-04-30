@@ -5,7 +5,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include <math.h>
-#include <omp.h>
 #include "mpi.h"
 
 #define CONTRASENA "asd123"
@@ -44,7 +43,6 @@ int main(int argc, char* argv[]) {
 	MPI_Comm_size(MPI_COMM_WORLD, &size);
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-	int max_hilos = omp_get_max_threads();
 	
 	if (rank == 0){printf("PROCESOS MPI: %d\n", size);
 	printf("BUSCANDO CONTRASENA: '%s' CON LONGITUD: %d, CARACTERES POSIBLES: %d)\n",

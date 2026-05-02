@@ -1,11 +1,10 @@
 
-#define _CRT_SECURE_NO_WARNINGS
-
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <math.h>
 #include "mpi.h"
+#include <x86intrin.h>
 
 #define CONTRASENA "asd123"
 #define LONGITUD_CONTRASENA 6
@@ -47,6 +46,7 @@ int main(int argc, char* argv[]) {
 	if (rank == 0){printf("PROCESOS MPI: %d\n", size);
 	printf("BUSCANDO CONTRASENA: '%s' CON LONGITUD: %d, CARACTERES POSIBLES: %d)\n",
 			CONTRASENA, LONGITUD_CONTRASENA, NUM_CAR);
+	printf("MEDICION CON TSC\n");
 	}
 	
 
@@ -55,8 +55,8 @@ int main(int argc, char* argv[]) {
 
 	if(rank==0) printf("POSIBLES COMBINACIONES: %lld\n\n", total_combinaciones);
 
-	int encontrado = 0; 
-	char resultado[LONGITUD_CONTRASENA + 1]; 
+	int encontrado = 0;
+	char resultado[LONGITUD_CONTRASENA + 1];
 
 	int encontrado_global = 0;
 	
@@ -76,21 +76,28 @@ int main(int argc, char* argv[]) {
 		final = inicio + (total_combinaciones / size);
 	}
 
-	long long i;
+	encontrado = 0;
+	resultado[0] = '\0';
 
-	for (i = inicio; i < final; i++) {
+	MPI_Barrier(MPI_COMM_WORLD);
+	unsigned long long start = __rdtsc();
+
+	for (long long i = inicio; i < final; i++) {
 		char cadena[LONGITUD_CONTRASENA + 1];
 		indice_a_cadena(i, LONGITUD_CONTRASENA, cadena);
 
 		if (strcmp(cadena, CONTRASENA) == 0) {
-
 			if (encontrado == 0) {
 				encontrado = 1;
 				strcpy(resultado, cadena);
-				
 			}
 		}
 	}
+	unsigned long long end = __rdtsc();
+	unsigned long long ciclos_local = end - start;
+
+	unsigned long long ciclos_global = 0;
+	MPI_Reduce(&ciclos_local, &ciclos_global, 1, MPI_UNSIGNED_LONG_LONG, MPI_MAX, 0, MPI_COMM_WORLD);
 
 	//si alguno encuentra la contraseña, encontrado=1, debe avisar a los demas
 	MPI_Allreduce(&encontrado, &encontrado_global, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
@@ -112,11 +119,13 @@ int main(int argc, char* argv[]) {
 					MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, &status);
 			}
 			printf("CONTRASENA ENCONTRADA: '%s'\n", resultado_global);
+			printf("TIEMPO MPI (ciclos, max entre procesos): %llu\n", ciclos_global);
 		}
 	}
 	else {
 		if (rank == 0) {
 			printf("NO SE ENCONTRO\n");
+			printf("TIEMPO MPI (ciclos, max entre procesos): %llu\n", ciclos_global);
 		}
 	}
 
@@ -133,5 +142,3 @@ int main(int argc, char* argv[]) {
 
 
 }
-
-

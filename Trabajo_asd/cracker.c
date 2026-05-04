@@ -5,7 +5,7 @@
 #include <time.h>
 
 #define CONTRASENA "asd123"
-#define LONGITUD_CONTRASENA 5
+#define LONGITUD_CONTRASENA 6
 #define CARACTERES "abcdefghijklmnopqrstuvwxyz0123456789"
 #define NUM_CAR 36
 

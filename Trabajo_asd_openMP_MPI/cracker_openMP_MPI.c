@@ -6,8 +6,8 @@
 #include <omp.h>
 #include "mpi.h"
 
-#define CONTRASENA "asd1234"
-#define LONGITUD_CONTRASENA 7
+#define CONTRASENA "asd123"
+#define LONGITUD_CONTRASENA 6
 #define CARACTERES "abcdefghijklmnopqrstuvwxyz0123456789"
 #define NUM_CAR 36
 

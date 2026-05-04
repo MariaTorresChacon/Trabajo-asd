@@ -1,11 +1,10 @@
-
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <math.h>
+#include <errno.h>
+#include <limits.h>
 #include <omp.h>
 #include "mpi.h"
-#include <x86intrin.h>
 
 #define CONTRASENA "asd123"
 #define LONGITUD_CONTRASENA 6
@@ -14,82 +13,102 @@
 
 //------------------------------------------------------------------------------------------------------------------
 
-
-//funcion que sirve para convertir un indice numerico a una cadena, 
+//funcion que sirve para convertir un indice numerico a una cadena,
 // para poder probar todas las posibles combinaciones de cierta longitud indicando un numero (indice del bucle for)
 void indice_a_cadena(long long indice, int longitud, char* resultado) {
 	for (int i = longitud - 1; i >= 0; i--) {
 		resultado[i] = CARACTERES[indice % NUM_CAR];
 		indice = indice / NUM_CAR;
-	} resultado[longitud] = '\0'; //marca el final del array
+	}
+	resultado[longitud] = '\0'; //marca el final del array
 }
 
+static long long potencia_entera(int base, int exponente) {
+	long long resultado = 1;
+	for (int i = 0; i < exponente; i++) {
+		resultado *= base;
+	}
+	return resultado;
+}
+
+static int parsear_entero_positivo(const char* texto, int* valor) {
+	char* fin = NULL;
+	long numero = 0;
+
+	errno = 0;
+	numero = strtol(texto, &fin, 10);
+
+	if (errno != 0 || texto == fin || *fin != '\0' || numero <= 0 || numero > INT_MAX) {
+		return 0;
+	}
+
+	*valor = (int)numero;
+	return 1;
+}
 
 //------------------------------------------------------------------------------------------------------------------
 
-
-
-//idea: cuando un proceso encuentra la contraseña (encontrado=1) todos los demas deben recivirlo a trabes de mensajes 
-
+//idea: cuando un proceso encuentra la contraseña (encontrado=1) todos los demas deben recivirlo a trabes de mensajes
 
 //MAIN
 
-
 int main(int argc, char* argv[]) {
-
 	MPI_Init(&argc, &argv);
 
 	int size, rank;
 	MPI_Comm_size(MPI_COMM_WORLD, &size);
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-	int max_hilos = omp_get_max_threads();
-
+	int hilos_por_proceso = 1;
+	if (argc >= 2) {
+		if (!parsear_entero_positivo(argv[1], &hilos_por_proceso)) {
+			if (rank == 0) {
+				fprintf(stderr, "Uso: %s [num_hilos_openmp]\n", argv[0]);
+			}
+			MPI_Finalize();
+			return 1;
+		}
+	}
+	else {
+		const char* env_hilos = getenv("OMP_NUM_THREADS");
+		if (env_hilos != NULL && parsear_entero_positivo(env_hilos, &hilos_por_proceso)) {
+			/* Valor tomado de OMP_NUM_THREADS. */
+		}
+	}
+	omp_set_num_threads(hilos_por_proceso);
 
 	if (rank == 0) {
-		printf("USANDO MAXIMO DE HILOS POSIBLE: %d\n", max_hilos);
 		printf("PROCESOS MPI: %d\n", size);
+		printf("HILOS OpenMP POR PROCESO: %d\n", hilos_por_proceso);
+		printf("TOTAL HILOS LANZADOS (ranks x hilos): %d\n", size * hilos_por_proceso);
 		printf("BUSCANDO CONTRASENA: '%s' CON LONGITUD: %d, CARACTERES POSIBLES: %d)\n",
 			CONTRASENA, LONGITUD_CONTRASENA, NUM_CAR);
-		printf("MEDICION CON TSC\n");
+		printf("MEDICION CON MPI_Wtime (segundos)\n");
 	}
 
+	long long total_combinaciones = potencia_entera(NUM_CAR, LONGITUD_CONTRASENA);
 
-
-	long long total_combinaciones = (long long)pow(NUM_CAR, LONGITUD_CONTRASENA);
-
-	if (rank == 0) printf("POSIBLES COMBINACIONES: %lld\n\n", total_combinaciones);
+	if (rank == 0) {
+		printf("POSIBLES COMBINACIONES: %lld\n\n", total_combinaciones);
+	}
 
 	int encontrado = 0;
 	char resultado[LONGITUD_CONTRASENA + 1];
-
 	int encontrado_global = 0;
-
-	//para mandar la contraseña al proceso 0, el cual la imprime
 	char resultado_global[LONGITUD_CONTRASENA + 1];
 	resultado_global[0] = '\0';
 
-
-	//dividir que proceso hace cada parte del bucle 
-
+	//dividir que proceso hace cada parte del bucle
 	long long inicio = (total_combinaciones / size) * rank;
-	long long final;
-	if (rank == size - 1) {//caso del ultimo proceso
-		final = total_combinaciones;
-	}
-	else {
-		final = inicio + (total_combinaciones / size);
-	}
+	long long final = (rank == size - 1) ? total_combinaciones : inicio + (total_combinaciones / size);
 
-
-	omp_set_num_threads(max_hilos);
 	encontrado = 0;
 	resultado[0] = '\0';
 
 	MPI_Barrier(MPI_COMM_WORLD);
-	unsigned long long start = __rdtsc();
+	double start = MPI_Wtime();
 
-	#pragma omp parallel for
+	#pragma omp parallel for schedule(static)
 	for (long long i = inicio; i < final; i++) {
 		char cadena[LONGITUD_CONTRASENA + 1];
 		indice_a_cadena(i, LONGITUD_CONTRASENA, cadena);
@@ -104,11 +123,12 @@ int main(int argc, char* argv[]) {
 			}
 		}
 	}
-	unsigned long long end = __rdtsc();
-	unsigned long long ciclos_local = end - start;
 
-	unsigned long long ciclos_global = 0;
-	MPI_Reduce(&ciclos_local, &ciclos_global, 1, MPI_UNSIGNED_LONG_LONG, MPI_MAX, 0, MPI_COMM_WORLD);
+	double end = MPI_Wtime();
+	double tiempo_local = end - start;
+
+	double tiempo_global = 0.0;
+	MPI_Reduce(&tiempo_local, &tiempo_global, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
 
 	//si alguno encuentra la contraseña, encontrado=1, debe avisar a los demas
 	MPI_Allreduce(&encontrado, &encontrado_global, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
@@ -122,7 +142,7 @@ int main(int argc, char* argv[]) {
 		// El proceso 0 recive la contraseña encontrada
 		if (rank == 0) {
 			if (encontrado) {
-				strcpy(resultado_global, resultado);  // caso en el que el proceso 0 es el que la encuentra
+				strcpy(resultado_global, resultado); // caso en el que el proceso 0 es el que la encuentra
 			}
 			else {
 				MPI_Status status;
@@ -130,26 +150,14 @@ int main(int argc, char* argv[]) {
 					MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, &status);
 			}
 			printf("CONTRASENA ENCONTRADA: '%s'\n", resultado_global);
-			printf("TIEMPO MPI+OpenMP (ciclos, max entre procesos): %llu\n", ciclos_global);
+			printf("TIEMPO MPI+OpenMP (s, max entre procesos): %.6f\n", tiempo_global);
 		}
 	}
-	else {
-		if (rank == 0) {
-			printf("NO SE ENCONTRO\n");
-			printf("TIEMPO MPI+OpenMP (ciclos, max entre procesos): %llu\n", ciclos_global);
-		}
+	else if (rank == 0) {
+		printf("NO SE ENCONTRO\n");
+		printf("TIEMPO MPI+OpenMP (s, max entre procesos): %.6f\n", tiempo_global);
 	}
-
-
 
 	MPI_Finalize();
-
-
 	return 0;
-
-
-	//primero compilar proyecto y luego ejecutar mpiexec -n 4 x64\Release\Trabajo_asd_MPI.exe siendo -n el numero de procesos (en windows)
-
-
-
 }

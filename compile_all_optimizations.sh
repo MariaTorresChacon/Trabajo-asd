@@ -42,10 +42,10 @@ for opt in "${OPT_LEVELS[@]}"; do
   flag="-${opt}"
   echo "Compilando con $flag..."
 
-  "$GCC" "$flag" "$SEQ_SRC" -o "${SEQ_DIR}/cracker_${opt}"
-  "$MPICC" "$flag" "$MPI_SRC" -o "${MPI_DIR}/cracker_MPI_${opt}"
-  "$GCC" "$flag" -fopenmp "$OMP_SRC" -o "${OMP_DIR}/cracker_OMP_${opt}"
-  "$MPICC" "$flag" -fopenmp "$OMP_MPI_SRC" -o "${OMP_MPI_DIR}/cracker_OMP_MPI_${opt}"
+  gcc "$flag" "$SEQ_SRC" -o "${SEQ_DIR}/cracker_${opt}"
+  mpicc "$flag" "$MPI_SRC" -o "${MPI_DIR}/cracker_MPI_${opt}"
+  gcc "$flag" -fopenmp "$OMP_SRC" -o "${OMP_DIR}/cracker_OMP_${opt}"
+  mpicc "$flag" -fopenmp "$OMP_MPI_SRC" -o "${OMP_MPI_DIR}/cracker_OMP_MPI_${opt}"
 done
 
 echo "Compilacion completada."

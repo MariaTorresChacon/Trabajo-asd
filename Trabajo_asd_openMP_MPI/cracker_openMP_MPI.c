@@ -31,21 +31,6 @@ static long long potencia_entera(int base, int exponente) {
 	return resultado;
 }
 
-static int parsear_entero_positivo(const char* texto, int* valor) {
-	char* fin = NULL;
-	long numero = 0;
-
-	errno = 0;
-	numero = strtol(texto, &fin, 10);
-
-	if (errno != 0 || texto == fin || *fin != '\0' || numero <= 0 || numero > INT_MAX) {
-		return 0;
-	}
-
-	*valor = (int)numero;
-	return 1;
-}
-
 //------------------------------------------------------------------------------------------------------------------
 
 //idea: cuando un proceso encuentra la contraseña (encontrado=1) todos los demas deben recivirlo a trabes de mensajes
@@ -59,22 +44,8 @@ int main(int argc, char* argv[]) {
 	MPI_Comm_size(MPI_COMM_WORLD, &size);
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-	int hilos_por_proceso = 1;
-	if (argc >= 2) {
-		if (!parsear_entero_positivo(argv[1], &hilos_por_proceso)) {
-			if (rank == 0) {
-				fprintf(stderr, "Uso: %s [num_hilos_openmp]\n", argv[0]);
-			}
-			MPI_Finalize();
-			return 1;
-		}
-	}
-	else {
-		const char* env_hilos = getenv("OMP_NUM_THREADS");
-		if (env_hilos != NULL && parsear_entero_positivo(env_hilos, &hilos_por_proceso)) {
-			/* Valor tomado de OMP_NUM_THREADS. */
-		}
-	}
+	int hilos_por_proceso = omp_get_max_threads();
+
 	omp_set_num_threads(hilos_por_proceso);
 
 	if (rank == 0) {
@@ -100,7 +71,14 @@ int main(int argc, char* argv[]) {
 
 	//dividir que proceso hace cada parte del bucle
 	long long inicio = (total_combinaciones / size) * rank;
-	long long final = (rank == size - 1) ? total_combinaciones : inicio + (total_combinaciones / size);
+	
+	long long final;
+	if (rank == size - 1) {
+		final = total_combinaciones;
+	}
+	else {
+		final = inicio + (total_combinaciones / size);
+	}
 
 	encontrado = 0;
 	resultado[0] = '\0';
@@ -108,7 +86,7 @@ int main(int argc, char* argv[]) {
 	MPI_Barrier(MPI_COMM_WORLD);
 	double start = MPI_Wtime();
 
-	#pragma omp parallel for schedule(static)
+	#pragma omp parallel for
 	for (long long i = inicio; i < final; i++) {
 		char cadena[LONGITUD_CONTRASENA + 1];
 		indice_a_cadena(i, LONGITUD_CONTRASENA, cadena);

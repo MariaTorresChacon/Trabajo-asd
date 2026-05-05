@@ -24,6 +24,7 @@ void indice_a_cadena(long long indice, int longitud, char* resultado) {
 	} resultado[longitud] = '\0'; //marca el final del array
 }	
 
+
 static long long potencia_entera(int base, int exponente) {
 	long long resultado = 1;
 	for (int i = 0; i < exponente; i++) {
@@ -32,45 +33,16 @@ static long long potencia_entera(int base, int exponente) {
 	return resultado;
 }
 
-static int parsear_entero_positivo(const char* texto, int* valor) {
-	char* fin = NULL;
-	long numero = 0;
-
-	errno = 0;
-	numero = strtol(texto, &fin, 10);
-
-	if (errno != 0 || texto == fin || *fin != '\0' || numero <= 0 || numero > INT_MAX) {
-		return 0;
-	}
-
-	*valor = (int)numero;
-	return 1;
-}
-
 //------------------------------------------------------------------------------------------------------------------
 
 
 //MAIN
 
 
-int main(int argc, char* argv[]) {
-	int hilos = 0;
-
-	if (argc >= 2) {
-		if (!parsear_entero_positivo(argv[1], &hilos)) {
-			fprintf(stderr, "Uso: %s [num_hilos_openmp]\n", argv[0]);
-			return 1;
-		}
-	}
-	else {
-		const char* env_hilos = getenv("OMP_NUM_THREADS");
-		if (env_hilos != NULL && parsear_entero_positivo(env_hilos, &hilos)) {
-			/* Valor tomado de OMP_NUM_THREADS. */
-		}
-		else {
-			hilos = omp_get_max_threads();
-		}
-	}
+int main() {
+	
+	 int hilos = omp_get_max_threads();
+		
 
 	omp_set_num_threads(hilos);
 	printf("USANDO HILOS OpenMP: %d\n", hilos);
@@ -87,12 +59,10 @@ int main(int argc, char* argv[]) {
 	char resultado[LONGITUD_CONTRASENA + 1];
 	double segundos = 0.0;
 
-	encontrado = 0;
-	resultado[0] = '\0';
 
 	double start = omp_get_wtime();
 
-	#pragma omp parallel for schedule(static)
+	#pragma omp parallel for 
 	for (long long i = 0; i < total_combinaciones; i++) {
 		char cadena[LONGITUD_CONTRASENA + 1];
 		indice_a_cadena(i, LONGITUD_CONTRASENA, cadena);

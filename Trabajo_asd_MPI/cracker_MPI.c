@@ -63,7 +63,13 @@ int main(int argc, char* argv[]) {
 
 	//dividir que proceso hace cada parte del bucle
 	long long inicio = (total_combinaciones / size) * rank;
-	long long final = (rank == size - 1) ? total_combinaciones : inicio + (total_combinaciones / size);
+	long long final;
+	if (rank == size - 1) {
+		final = total_combinaciones;
+	}
+	else {
+		final = inicio + (total_combinaciones / size);
+	}
 
 	encontrado = 0;
 	resultado[0] = '\0';

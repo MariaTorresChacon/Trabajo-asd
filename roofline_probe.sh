@@ -19,6 +19,7 @@ JSON_OUT=""
 PPEAK_GFLOPS=""
 
 MODE="all"
+SCOPE=""
 PEERS=()
 NO_CLEANUP=0
 DO_INSTALL=1
@@ -26,12 +27,18 @@ DO_INSTALL=1
 usage() {
   cat <<EOF
 Uso:
+  $SCRIPT_NAME --scope machine [opciones]
+  $SCRIPT_NAME --scope cluster --peers IP1,IP2 [opciones]
+  $SCRIPT_NAME --scope both --peers IP1,IP2 [opciones]
   $SCRIPT_NAME --all --peers IP1,IP2 [opciones]
   $SCRIPT_NAME --server [opciones]
   $SCRIPT_NAME --memory-only [opciones]
   $SCRIPT_NAME --net-only --peers IP1,IP2 [opciones]
 
 Modos:
+  --scope machine   Solo una máquina (benchmark memoria STREAM local).
+  --scope cluster   Solo cluster (benchmark red contra peers).
+  --scope both      Máquina + cluster (STREAM + red).
   --all              Ejecuta STREAM + red (cliente) + limpieza (default).
   --server           Solo arranca iperf3 en modo servidor.
   --memory-only      Solo benchmark de memoria (STREAM).
@@ -95,6 +102,10 @@ parse_args() {
       --all)
         MODE="all"
         shift
+        ;;
+      --scope)
+        SCOPE="${2:-}"
+        shift 2
         ;;
       --server)
         MODE="server"
@@ -163,6 +174,18 @@ parse_args() {
         ;;
     esac
   done
+
+  if [[ -n "$SCOPE" ]]; then
+    case "$SCOPE" in
+      machine) MODE="memory-only" ;;
+      cluster) MODE="net-only" ;;
+      both) MODE="all" ;;
+      *)
+        echo "Valor inválido para --scope: $SCOPE (usa machine|cluster|both)" >&2
+        exit 1
+        ;;
+    esac
+  fi
 }
 
 SUDO=""
@@ -368,6 +391,10 @@ build_summary() {
       ridge_ai="$(awk -v p="$PPEAK_GFLOPS" -v b="$stream_Bps" 'BEGIN { if (b>0) printf "%.6f", (p*1e9)/b; else print "null" }')"
     fi
   fi
+
+  # Create placeholders to avoid jq failing on missing slurp files
+  [[ -f "$WORKDIR/network_summary.json" ]] || echo '{}' > "$WORKDIR/network_summary.json"
+  [[ -f "$WORKDIR/network_results.json" ]] || echo '[]' > "$WORKDIR/network_results.json"
 
   jq -n \
     --arg mode "$MODE" \

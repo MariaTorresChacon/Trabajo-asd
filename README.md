@@ -26,3 +26,26 @@ NP_MPI=6 NP_HYBRID=3 OMP_THREADS=2 ./run_cluster_bench.sh hostfile.txt
 ```
 
 Nota: en el caso hibrido el script usa `--map-by ppr:1:node` para forzar 1 proceso MPI por nodo.
+
+## Detectar cuellos de botella
+
+Para analizar por qué OpenMP, MPI o la versión híbrida dejan de escalar:
+
+```bash
+./detect_bottlenecks.sh --hostfile hostfile.txt
+```
+
+Salida principal:
+
+- `.bottleneck_detector/report.txt`: diagnóstico textual
+- `.bottleneck_detector/results.tsv`: tiempos, speedups y CPU efectiva
+- `.bottleneck_detector/static_findings.txt`: hallazgos del código
+- `.bottleneck_detector/probes.txt`: overhead de OpenMP y MPI
+
+Ejemplos:
+
+```bash
+./detect_bottlenecks.sh --opt-level O3 --max-omp 8 --max-mpi 8
+./detect_bottlenecks.sh --hostfile hostfile.txt --repeats 3
+./detect_bottlenecks.sh --skip-hybrid
+```

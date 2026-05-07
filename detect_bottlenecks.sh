@@ -366,7 +366,7 @@ static_analysis() {
     fi
 
     if [[ -z "$omp_cancel_line" ]]; then
-      echo "- No hay salida temprana real en OpenMP: aunque un hilo encuentre la contraseña, el resto del `parallel for` sigue recorriendo su rango completo."
+      echo "- No hay salida temprana real en OpenMP: aunque un hilo encuentre la contraseña, el resto del bucle parallel for sigue recorriendo su rango completo."
     fi
 
     if grep -q 'for (long long i = inicio; i < final; i++)' "$MPI_SRC"; then
@@ -374,7 +374,7 @@ static_analysis() {
     fi
 
     if [[ -n "$mpi_allreduce_line" && -n "$mpi_send_line" ]]; then
-      echo "- La comunicación MPI es mínima y ocurre al final: un `MPI_Allreduce` y, como mucho, un `MPI_Send/MPI_Recv` de 7 bytes. Si MPI se estanca, la primera sospecha no debería ser la red."
+      echo "- La comunicación MPI es mínima y ocurre al final: un MPI_Allreduce y, como mucho, un MPI_Send/MPI_Recv de 7 bytes. Si MPI se estanca, la primera sospecha no debería ser la red."
     fi
   } >> "$STATIC_TXT"
 }
@@ -486,7 +486,7 @@ run_probes() {
     "${probe_cmd[@]}" > "$RAW_DIR/mpi_probe.out"
     local mpi_probe_time
     mpi_probe_time="$(probe_time_from_output "$RAW_DIR/mpi_probe.out")"
-    echo "- Coste bruto de un `MPI_Allreduce` + mensaje pequeño con $best_mpi_proc procesos: ${mpi_probe_time}s" >> "$PROBES_TXT"
+    echo "- Coste bruto de un MPI_Allreduce + mensaje pequeño con $best_mpi_proc procesos: ${mpi_probe_time}s" >> "$PROBES_TXT"
     if [[ -n "$seq_time" ]]; then
       awk -v p="$mpi_probe_time" -v s="$seq_time" 'BEGIN { if (s > 0) printf "- Fracción frente al secuencial O3: %.6f%%\n", (p / s) * 100 }' >> "$PROBES_TXT"
     fi

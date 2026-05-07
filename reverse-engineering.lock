@@ -1,9 +1,9 @@
 #Ghidra Lock File
-#Thu May 07 17:22:06 CEST 2026
+#Thu May 07 17:30:23 CEST 2026
 <META>\ Supports\ File\ Channel\ Locking=Channel Lock
 Hostname=Jarvis.local
 OS\ Architecture=aarch64
 OS\ Name=Mac OS X
 OS\ Version=26.3.1
-Timestamp=5/7/26, 5\:22\u202FPM
+Timestamp=5/7/26, 5\:30\u202FPM
 Username=pablo

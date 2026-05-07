@@ -1,0 +1,36 @@
+La diferencia principal es que Trabajo_asd/cracker_O0.txt:880 es una traducción muy literal del código C,
+  mientras que Trabajo_asd/cracker_O3.txt:570 está reorganizado agresivamente para que el bucle crítico se
+  ejecute casi por completo en registros.
+
+  En -O0, main llama a funciones auxiliares para casi todo:
+
+  - potencia_entera para calcular 36^6 en tiempo de ejecución (Trabajo_asd/cracker_O0.txt:912)
+  - tiempo_monotonico_segundos antes y después de la búsqueda (Trabajo_asd/cracker_O0.txt:929, Trabajo_asd/
+    cracker_O0.txt:972)
+  - indice_a_cadena en cada iteración del bucle (Trabajo_asd/cracker_O0.txt:944)
+
+  Además, esa versión guarda casi todas las variables en la pila y las recarga constantemente (local_48,
+  local_40, local_4c, etc.), que es el comportamiento típico de un binario sin optimizar.
+
+  En -O3, el compilador hace varios cambios importantes:
+
+  - Sustituye 36^6 por la constante 0x81bf1000 directamente en main (Trabajo_asd/cracker_O3.txt:585).
+  - Inserta en línea la lógica de medición de tiempo, en lugar de llamar a tiempo_monotonico_segundos
+    (Trabajo_asd/cracker_O3.txt:619, Trabajo_asd/cracker_O3.txt:744).
+  - Elimina la llamada por iteración a indice_a_cadena; la conversión en base 36 queda expandida directamente
+    dentro del bucle con aritmética sobre registros (Trabajo_asd/cracker_O3.txt:650 a Trabajo_asd/
+    cracker_O3.txt:705).
+  - En vez de usar divisiones o módulos normales entre 36, emplea una multiplicación con una “constante
+    mágica” (R12 = -0x1c71c71c71c71c71) y desplazamientos, que resulta más rápida (Trabajo_asd/
+    cracker_O3.txt:581, Trabajo_asd/cracker_O3.txt:651).
+  - Mantiene el estado del bucle en registros (R15 como contador, R13 como bandera de encontrado, R14 como
+    puntero al alfabeto y RBX como búfer de candidato) en lugar de usar variables en la pila.
+
+  También cambia el uso de funciones de biblioteca: -O0 usa printf y strcpy normales (Trabajo_asd/
+  cracker_O0.txt:901, Trabajo_asd/cracker_O0.txt:963), mientras que -O3 usa versiones reforzadas como
+  __printf_chk y __strcpy_chk (Trabajo_asd/cracker_O3.txt:597, Trabajo_asd/cracker_O3.txt:730).
+
+  En resumen: -O0 conserva una estructura muy parecida al código fuente original, mientras que -O3 precalcula
+  constantes, inserta funciones auxiliares en línea, elimina el coste de llamadas, reduce accesos a memoria y
+  reescribe el bucle interno para que sea mucho más rápido. Si quieres, también puedo convertir esto en una
+  versión más breve y formal, estilo memoria o informe.

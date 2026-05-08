@@ -49,3 +49,14 @@ Ejemplos:
 ./detect_bottlenecks.sh --hostfile hostfile.txt --repeats 3
 ./detect_bottlenecks.sh --skip-hybrid
 ```
+
+## Ejecutar un script 5 veces y medir tiempos
+
+El wrapper `run_5_times.sh` ejecuta cualquier script o comando 5 veces seguidas, reenvía sus flags sin modificarlos y muestra el tiempo de cada ejecución.
+
+Ejemplos:
+
+```bash
+./run_5_times.sh ./detect_bottlenecks.sh --hostfile hostfile.txt --repeats 3
+./run_5_times.sh bash ./compile_all_optimizations.sh
+```
